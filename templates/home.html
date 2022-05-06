@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pybeam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <script src="/static/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $("#fform").submit(function() {
+                if (!definedTrave()) {
+                    alert("Imposta la trave!")
+                }
+                else {
+                    $.ajax({
+                        type: "POST",
+                        url: "/diag",
+                        data: $("#fform").serialize(),
+                        success: function(data) {
+                            $("#sez_diagrammi").show()
+    
+                            $("#diagN").html(data["normale"])
+                            $("#diagT").html(data["taglio"])
+                            $("#diagM").html(data["momento"])
+                            $("html, body").animate({ scrollTop: $("#sez_diagrammi").offset().top - 150}, 1000);
+                        }
+                    })
+                    event.preventDefault();
+                }
+                event.preventDefault();
+            })
+        }).ajaxStart(function() {
+            $("#loading_spinner").show()
+            $("html, body").animate({ scrollTop: $(document).height() }, 1000);
+        }).ajaxStop(function() {
+            $("#loading_spinner").hide()
+        })
+    </script>
+    <style>
+        html {
+            min-height: 100%;
+            width: 100%;
+            position: relative;
+        }
+        body > *:not(#info_box) {
+            width: 75%;
+            margin: 1rem auto;
+        }
+        h1 {
+            font-size: 6.5rem;
+            margin: 3rem 0;
+        }
+        input[name="angolo_forza"], label[for="angolo_forza"] {
+            display: none;
+        }
+        #ctrls{
+            margin-block: 3rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            background-color: black;
+            grid-gap: 2px;
+            padding: 2px;
+        }
+        #ctrls > form {
+            background-color: white;
+            padding: 1rem;
+        }
+        form > * {
+            display: block;
+        }
+        label > * {
+            width: 100%;
+        }
+        input.btn {
+            margin-block: 1rem;
+        }
+        #input_tables {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        #input_tables > * {
+            padding: 0.25rem;
+            margin-bottom: 0;
+        }
+        #input_tables table *:not(img) {
+            border-collapse: collapse;
+            border: 2px solid black;
+        }
+        #input_tables table thead tr th[colspan] {
+            color: red;
+            text-align: center;
+        }
+        #input_tables table th, #input_tables table td {
+            padding: 0.5rem;
+        }
+        #trave {
+            display: block;
+            color: red;
+            margin: 2rem 0 1rem;
+            font-weight: bold;
+            border: 2px solid black;
+            padding: 0.5rem;
+        }
+        #trave div {
+            display: inline;
+            font-weight: normal;
+            color: black;
+        }
+        #sez_diagrammi {
+            margin-top: 4rem;
+            display: none;
+        }
+        #sez_diagrammi > * {
+            margin-block: 2rem;
+        }
+        #title h1 {
+            display: inline-block;
+        }
+        #title img {
+            width: 1rem;
+        }
+        #info_box {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: hsla(0,0%,0%,0.25);
+        }
+        #info_box h3 {
+            border-bottom: 1px solid black;
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+        #info_box > div {
+            background-color: white;
+            padding: 1.5rem;
+            border: 2px solid black;
+            border-radius: 1rem;
+            width: 30rem;
+            margin: 10rem auto;
+            text-align: center;
+        }
+        #info_box img {
+            margin: 1rem auto;
+        }
+        #loading_spinner {
+            display: none;
+            position: relative;
+            height: 10rem;
+        }
+        #loading_spinner svg {
+            animation: rotate 2s linear infinite;
+            z-index: 2;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin: -25px 0 0 -25px;
+            width: 50px;
+            height: 50px;        
+        }
+
+        #loading_spinner svg circle {
+            stroke: #0d6efd;
+            stroke-linecap: round;
+            animation: dash 1.5s ease-in-out infinite;
+        }
+
+        @keyframes rotate {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes dash {
+            0% {
+                stroke-dasharray: 1, 150;
+                stroke-dashoffset: 0;
+            }
+            50% {
+                stroke-dasharray: 90, 150;
+                stroke-dashoffset: -35;
+            }
+            100% {
+                stroke-dasharray: 90, 150;
+                stroke-dashoffset: -124;
+            }
+        }
+
+        footer {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div id="title">
+        <h1>Pybeam</h1>
+        <img src="/static/Icon-Info.svg" onclick="showInfo();" alt="Informazioni"/>
+        <a href="https://github.com/emanuelemaz/py-beam" target="_blank">
+            <img src="/static/Github.svg" alt="GitHub"/>
+        </a>
+    </div>
+    <div id="ctrls">
+        <form onsubmit="event.preventDefault();setTrave();" method="post" name="settrave" autocomplete="off">
+            <h2>Imposta trave</h2>
+            <label for="len_trave">
+                Lunghezza trave (m)
+                <input name="len_trave" type="number" step="any" min="0.00000000000000000001" required>
+            </label>
+            <input class="btn btn-primary" type="submit" value="Imposta">
+        </form>
+        <form onsubmit="event.preventDefault();addForza();" method="post" name="newforza" autocomplete="off">
+            <h2>Aggiungi forza puntiforme</h2>
+            <label for="val_forza">
+                Intensità (kN)
+                <input name="val_forza" type="number" step="any" required>
+            </label>
+            <label for="dist_forza">
+                Distanza (m)
+                <input name="dist_forza" type="number" step="any" min="0.00000000000000000001" required>
+            </label>
+            <label for="dir_forza">
+                Direzione
+                <select name="dir_forza">
+                    <option value="V">Verticale</option>
+                    <option value="H">Orizzontale</option>
+                    <option value="a">Inclinata</option>
+                </select>
+            </label>
+            <label for="angolo_forza">
+                Angolo (°)
+                <input name="angolo_forza" type="number" step="any">
+            </label>
+            <input class="btn btn-primary" type="submit" value="Aggiungi">
+        </form>
+        
+        <form onsubmit="event.preventDefault();addCarico();" method="post" name="newcarico" autocomplete="off">
+            <h2>Aggiungi carico distribuito</h2>
+            <label for="qS">
+                Carico iniziale (kN/m)
+                <input name="qS" type="number" step="any" required>
+            </label>
+            <label for="qD">
+                Carico finale (kN/m)
+                <input name="qD" type="number" step="any" required>
+            </label>
+            <label for="dist_carico">
+                Distanza (m)
+                <input name="dist_carico" type="number" step="any" min="0.00000000000000000001" required>
+            </label>
+            <label for="len_carico">
+                Lunghezza (m)
+                <input name="len_carico" type="number" step="any" min="0.00000000000000000001" required>
+            </label>
+            <input class="btn btn-primary" type="submit" value="Aggiungi">
+        </form>
+
+        <form onsubmit="event.preventDefault();addMomento();" method="post" name="newmomento" autocomplete="off">
+            <h2>Aggiungi momento concentrato</h2>
+            <label for="val_momento">
+                Intensità (kNm)
+                <input name="val_momento" type="number" step="any" required>
+            </label>
+            <label for="dist_momento">
+                Distanza (m)
+                <input name="dist_momento" type="number" step="any" min="0.00000000000000000001" required>
+            </label>
+            <input class="btn btn-primary" type="submit" value="Aggiungi">
+        </form>
+    </div>
+    <div class="inputaz">
+        <div id="trave">Trave: <div></div></div>
+        <div id="input_tables">
+            <table id="forze">
+                <thead>
+                    <tr><th scope="col" colspan="4">Forze</th></tr>
+                    <tr>
+                        <th scope="col">Intensità (kN)</th>
+                        <th scope="col">Distanza (m)</th>
+                        <th scope="col">Direzione/Angolo</th>
+                        <th scope="col">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                </tbody>
+            </table>
+            <table id="carichi">
+                <thead>
+                    <tr><th scope="col" colspan="5">Carichi</th></tr>
+                    <tr>
+                        <th scope="col">Carico iniziale (kN/m)</th>
+                        <th scope="col">Carico finale (kN/m)</th>
+                        <th scope="col">Distanza (m)</th>
+                        <th scope="col">Lunghezza (m)</th>
+                        <th scope="col">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                </tbody>
+            </table>
+            <table id="momenti">
+                <thead>
+                    <tr><th scope="col" colspan="3">Momenti</th></tr>
+                    <tr>
+                        <th scope="col">Intensità (kNm)</th>
+                        <th scope="col">Distanza (m)</th>
+                        <th scope="col">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                </tbody>
+            </table>
+        </div>
+        <div id="runApp">
+            <form name="runapp" id="fform">
+                <input type="hidden" name="azioni">
+                <input class="btn btn-primary" type="submit" value="Ottieni i diagrammi" onclick="runApp()">
+            </form>
+            <div id="loading_spinner">
+                <svg viewBox="0 0 50 50">
+                    <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                  </svg>
+            </div>
+        </div>
+        <div id="sez_diagrammi">
+            <div id="diagN">
+                <h2>Diagramma dello sforzo normale</h2>
+            </div>
+            <div id="diagT">
+                <h2>Diagramma dello sforzo di taglio</h2>
+            </div>
+            <div id="diagM">
+                <h2>Diagramma del momento flettente</h2>
+            </div>
+        </div>
+    </div>
+    <div id="info_box">
+        <div>
+            <h3>Convenzioni utilizzate</h3>
+            <img src="/static/Conv.svg" alt="Immagine esemplificativa."/>
+            <p>Convenzioni utilizzate nel calcolo: le forze che vanno verso l'alto e verso destra sono positive. I momenti che girano in senso orario sono positivi.</p>
+            <p>Nel diagramma del momento, i valori positivi vanno verso il basso e i negativi verso l'alto (fibre tese).</p>
+        </div>
+    </div>
+    <script>
+        class Trave {
+            constructor(len) {
+                this.len = parseFloat(len)
+            }
+        }
+        class Forza {
+            constructor(val, dist, dir) {
+                this.val = parseFloat(val);
+                this.dist = parseFloat(dist);
+                this.dir = dir;
+            }
+            direzione() {
+                if (this.dir === "V") {
+                    return "Verticale"
+                }
+                if (this.dir === "H") {
+                    return "Orizzontale"
+                }
+                else {
+                    return this.dir + "°"
+                }
+            }
+        }
+        class Carico {
+            constructor(qS, qD, dist, len) {
+                this.qS = parseFloat(qS);
+                this.qD = parseFloat(qD);
+                this.dist = parseFloat(dist);
+                this.len = parseFloat(len)
+            }
+        }
+        class Momento {
+            constructor(val, dist) {
+                this.val = parseFloat(val);
+                this.dist = parseFloat(dist);
+            }
+        }
+
+        var trave = Array(1)
+        var forze = []
+        var carichi = []
+        var momenti = []
+
+        function azioni() {
+            var azD = {};
+            azD['forze'] = JSON.stringify(forze)
+            azD['carichi'] = JSON.stringify(carichi)
+            azD['momenti'] = JSON.stringify(momenti)
+            azD['trave'] = JSON.stringify(trave)
+            return azD;
+        }
+
+
+        let forza_dir = document.getElementsByName('dir_forza')[0];
+        forza_dir.addEventListener('change', (e) => {
+        if (e.target.value == 'a') {
+            document.getElementsByName('angolo_forza')[0].style.display = 'inline-block';
+            document.getElementsByName('angolo_forza')[0].setAttribute("required", "true")
+            document.getElementsByName('angolo_forza')[0].parentElement.style.display = 'inline-block';
+        } else {
+            document.getElementsByName('angolo_forza')[0].value = "";
+            document.getElementsByName('angolo_forza')[0].removeAttribute("required")
+            document.getElementsByName('angolo_forza')[0].parentElement.style.display = 'none';
+        }
+        });
+
+        let info_box = document.getElementById("info_box");
+        info_box.addEventListener('click', (e) => {
+            if (!info_box.querySelector("div").contains(e.target)) {
+                $("#info_box").hide();
+            }
+        })
+
+        function definedTrave() {
+            if (trave[0]) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+        function inTrave(l) {
+            if (l<=trave[0].len) {
+                return true
+            } else {
+                return false
+            }
+        }
+
+        function setTrave() {
+            tLen = parseFloat(document.getElementsByName("len_trave")[0].value);
+            trave[0] = new Trave(tLen);
+
+            updateDisplay();
+         }
+
+        function addForza() {
+            if (definedTrave()) {
+                var f_vals = [
+                    parseFloat(document.getElementsByName("val_forza")[0].value),
+                    parseFloat(document.getElementsByName("dist_forza")[0].value),
+                    document.getElementsByName("dir_forza")[0].value
+                ]
+                if (f_vals[2] == "a") {
+                    f_vals[2] = parseFloat(document.getElementsByName("angolo_forza")[0].value);
+                }
+                if (!inTrave(f_vals[1])) {
+                    alert("La forza deve essere applicata sulla trave!")
+                }
+                else {
+                    forze.push(new Forza(f_vals[0], f_vals[1], f_vals[2]))
+                    updateDisplay()
+                }
+            }
+            else {
+                alert("Imposta la trave!")
+            }
+        }
+
+        function addCarico() {
+            if (definedTrave()) {
+                var q_vals = [
+                    parseFloat(document.getElementsByName("qS")[0].value),
+                    parseFloat(document.getElementsByName("qD")[0].value),
+                    parseFloat(document.getElementsByName("dist_carico")[0].value),
+                    parseFloat(document.getElementsByName("len_carico")[0].value)
+                ]
+                if (!inTrave(q_vals[2]+q_vals[3])) {
+                    alert("Il carico deve essere applicato sulla trave!")
+                }
+                else {
+                    carichi.push(new Carico(q_vals[0], q_vals[1], q_vals[2], q_vals[3]))
+                    updateDisplay()
+                }
+            }
+            else {
+                alert("Imposta la trave!")
+            }
+        }
+
+        function addMomento() {
+            if (definedTrave()) {
+                var m_vals = [
+                    parseFloat(document.getElementsByName("val_momento")[0].value),
+                    parseFloat(document.getElementsByName("dist_momento")[0].value),
+                ]
+                if (!inTrave(m_vals[1])) {
+                    alert("Il momento deve essere applicato sulla trave!")
+                }
+                else {
+                    momenti.push(new Momento(m_vals[0], m_vals[1]))
+                    updateDisplay()
+                }
+            }
+            else {
+                alert("Imposta la trave!")
+            }
+        }
+
+        function updateDisplay() {
+            traveDisplay = document.querySelector(".inputaz #trave div")
+            tableF = document.querySelector(".inputaz #forze tbody");
+            tableQ = document.querySelector(".inputaz #carichi tbody");
+            tableM = document.querySelector(".inputaz #momenti tbody");
+            while (tableF.firstChild) {
+                tableF.removeChild(tableF.firstChild);
+            }
+            while (tableQ.firstChild) {
+                tableQ.removeChild(tableQ.firstChild);
+            }
+            while (tableM.firstChild) {
+                tableM.removeChild(tableM.firstChild);
+            }
+
+            var forzeTr = []
+            var carichiTr = []
+            var momentiTr = []
+            
+            for (const f of forze) {
+                var forzaTr = document.createElement("tr");
+                fInd = forze.indexOf(f)
+                forzaTr.innerHTML = `<td>${f.val}</td>
+                                    <td>${f.dist}</td>
+                                    <td>${f.direzione()}</td>
+                                    <td style="text-align: center;">
+                                        <img src="/static/Icon-Trash.svg" onclick="removeAz(forze, ${fInd})"></img>
+                                    </td>`
+                forzeTr.push(forzaTr);
+            }
+            
+            for (const q of carichi) {
+                var caricoTr = document.createElement("tr");
+                qInd = carichi.indexOf(q)
+                caricoTr.innerHTML = `<td>${q.qS}</td>
+                                    <td>${q.qD}</td>
+                                    <td>${q.dist}</td>
+                                    <td>${q.len}</td>
+                                    <td style="text-align: center;">
+                                        <img src="/static/Icon-Trash.svg" onclick="removeAz(carichi, ${qInd})"></img>
+                                    </td>`
+                carichiTr.push(caricoTr);
+            }
+            
+            for (const m of momenti) {
+                var momentoTr = document.createElement("tr");
+                mInd = momenti.indexOf(m)
+                momentoTr.innerHTML = `<td>${m.val}</td>
+                                       <td>${m.dist}</td>
+                                       <td style="text-align: center;">
+                                          <img src="/static/Icon-Trash.svg" onclick="removeAz(momenti, ${mInd})"></img>
+                                        </td>`
+                momentiTr.push(momentoTr);
+            }
+
+            for (const fTr of forzeTr) {
+                tableF.appendChild(fTr);
+            }
+            for (const qTr of carichiTr) {
+                tableQ.appendChild(qTr);
+            }
+            for (const mTr of momentiTr) {
+                tableM.appendChild(mTr);
+            }
+            traveDisplay.innerHTML = `${trave[0].len}m`
+        }
+
+        function removeAz(list, index) {
+            list.splice(index, 1);
+            updateDisplay();
+        }
+        
+        function runApp() {
+            if (!trave[0].len) {
+                alert("Imposta la trave!")
+            }
+            azioni_json = JSON.stringify(azioni())
+            azioni_input = document.getElementsByName("azioni")[0].setAttribute("value", azioni_json)
+        }
+
+        function showInfo() {
+            $("#info_box").show();
+        }
+    </script>
+</body>
+</html>
