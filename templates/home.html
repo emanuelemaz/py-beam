@@ -36,6 +36,10 @@
                 if (!definedTrave()) {
                     alert("Imposta la trave!")
                 }
+                pt = document.querySelector('#pointValues input[name="punto"]').value
+                if (!inTrave(pt)) {
+                    alert("Il punto deve essere compreso nella lunghezza della trave!")
+                }
                 else {
                     $.ajax({
                         type: "POST",
@@ -374,7 +378,7 @@
                     Punto
                     <input type="number" name="punto" step="any" min="0.00000000000000000001" required>
                 </label>
-                <input class="btn btn-primary" type="submit" value="Ottieni i valori per il punto" onclick="checkPoint()">
+                <input class="btn btn-primary" type="submit" value="Ottieni i valori per il punto" onclick="runApp()">
             </form>
             <div id="loading_spinner">
                 <svg viewBox="0 0 50 50">
@@ -636,15 +640,6 @@
             azioni_json = JSON.stringify(azioni())
             azioni_input = document.getElementsByName("azioni")[0].setAttribute("value", azioni_json)
             azioni_input = document.getElementsByName("azioni")[1].setAttribute("value", azioni_json)
-        }
-
-        function checkPoint() {
-            pt = document.querySelector('#pointValues input[name="punto"]').value
-            if (!inTrave(pt)) {
-                alert("Il punto deve essere compreso nella lunghezza della trave!")
-            } else {
-                runApp()
-            }
         }
 
         function showInfo() {
