@@ -251,7 +251,9 @@ def getDiagrams(trave, forzeList=None, carichiList=None, momentiList=None):
     momento.update_xaxes(range=[-0.1, T[0]+0.1])
     momento.update_layout(showlegend=False, hovermode="closest")
 
+    # Per versione desktop/console
     # normale.show(config=config)
     # taglio.show(config=config)
     # momento.show(config=config)
+    
     return [plotly.io.to_html(normale, config, full_html=False), plotly.io.to_html(taglio, config, full_html=False), plotly.io.to_html(momento, config, full_html=False)]
